@@ -6,8 +6,9 @@ Finding optimal coding functions for continuous wave time of flight with neural 
 1. [ML Environment Setup](#mlsetup)
 
 <a name="mlsetup">
-## Tensorflow + Keras Setup 
 </a>
+
+## Tensorflow and Keras Setup 
 
 We will use anaconda to create a virtual environment that uses python 2.7. Why 2.7 and not 3.5? I saw a few github issues and posts online talking about problems running Keras with Theano on python 3.5.
 
