@@ -2,7 +2,7 @@
 \author{Zhicheng Gu, Nikhil Nakhate, Zhenyu Zhang, Felipe Gutierrez Barragan}
 \date{\today}
 
-\documentclass[11pt]{article}
+\documentclass[12pt]{article}
 \usepackage{wrapfig,amsmath,amssymb,multirow,subfig,epsfig,graphicx}
 \usepackage{paralist,caption,tabularx,wasysym,hyperref,natbib}
 \usepackage[margin=0.8in]{geometry}
@@ -14,6 +14,8 @@
 \def \d {\mathbf{d}}
 \def \f {\mathbf{f}}
 \def \l {\mathbf{l}}
+\def \p {\mathbf{p}}
+\def \b {\mathbf{b}}
 \def \C_m {\mathbf{C_{m}}}
 
 
@@ -28,34 +30,46 @@
 \begin{document}
 \maketitle
 
-\paragraph{Background:} Time of flight (ToF) refers to the time that a light pulse takes to travel from a source to a target scene and back to a detector. This technique is often used to recover scene depths and shape. Continuous-wave ToF (CW-ToF) systems are one type of ToF cameras that, due to their low-cost and compact size, have the potential to impact a wide set of applications. In these systems the light source and sensor exposure are temporally modulated. The radiant intensity (brightness of light source) emitted by the light source is determined by a periodic modulation function $M(t)$. The sensor exposure is modulated by a periodic demodulation function, $D(t)$. The light reflected from the scene and incident on the sensor will be a scaled and phase shifted version of the modulation function denoted as the incident radiance, $L(t)$. The brightness, $B(t)$, measured by the sensor is the temporal correlation between $L(t)$ and $D(t)$. Note that the scene depth, $\Gamma$, is encoded in the temporal shift (phase shift, $\phi = \frac{2\Gamma}{c}$) of the received radiance and consequently only a fixed range of depths can be recovered from a given modulation frequency ($\omega$) due to the periodicity of the function. This process is illustrated by Figure \ref{fig:tofIllustration}.
+\paragraph{Background:} Time of flight (ToF) refers to the time that a light pulse takes to travel from a source to a target scene and back to a detector. This technique is often used to recover scene depths and shape. Continuous-wave ToF (CW-ToF) systems are one type of ToF cameras that, due to their low-cost and compact size, have the potential to impact a wide set of applications. In CW-ToF the light source and sensor exposure are temporally modulated. The radiant intensity (i.e intensity of light) emitted by the source is determined by a periodic \textit{modulation function}, $M(t)$. The sensor exposure is modulated by a periodic \textit{demodulation function}, $D(t)$. The light reflected from the scene and incident on a sensor pixel ($p$) will be a scaled, phase shifted, and vertically shifted version of the $M(t)$ denoted as the incident radiance, $L(\p,t)$ (see equation \ref{eq:L}. The brightness, $B(\p)$, measured at a sensor pixel is the temporal correlation between $L(\p,t)$ and $D(t)$. Note that the scene depth, $\Gamma$, is encoded in the temporal shift (phase shift, $\phi = \frac{2\Gamma}{c}$) of in $L(\p,t)$. This process is illustrated by Figure \ref{fig:tofIllustration}.
+
+\begin{equation} \label{eq:L}
+    L(\p,t) = \beta(\p) M(t - \frac{2\Gamma}{c}) + L_a
+\end{equation}
 
 \begin{figure}[h]
 \centerline{%
-\includegraphics[width=0.5\textwidth]{"tofIllustration"}%
+\includegraphics[width=0.5\textwidth]{"../Figures/tofIllustration"}%
 }
 \caption{Illustration of a CW-ToF setup.}
 \label{fig:tofIllustration}
 \end{figure}
 
-The brightness measured by the camera sensor can be expressed as shown in equation \ref{eq:brightness}, where $\beta$ is the scene albedo (light absorbed by scene), $f(\Gamma)$ is the correlation function (equation \ref{eq:correlation}), and $L_a$ is the ambient illumination (assumed to be constant). Therefore to determine the unknowns ($\beta$, $\Gamma$, $L_a$ ) we need at least 3 brightness measurements. $\gamma_{i}$ is the result of integrating $D(t)$ over the integration period $\tau$.
+The brightness measured by the sensor can be expressed as shown in equation \ref{eq:brightness}, where $\beta(\p)$ is the scene albedo (light absorbed), 
+%$f(\Gamma)$ is the correlation function (equation \ref{eq:correlation}), 
+$L_a$ is the ambient illumination (assumed constant), and $\gamma_i = \int_{0}^{\tau} D(t)dt$. 
+To determine the unknowns ($\beta$, $\Gamma$, $L_a$ ) we need at least 3 brightness measurements. 
 
+\begin{gather} \label{eq:brightness}
+    B_{i}(\p,\beta,\Gamma,L_a) = \int_{0}^{\tau} D_i(t)L_i(\p,t) dt = \beta(\p) \int_{0}^{\tau} D_i(t)(M_i(t - \frac{2\Gamma}{c})) dt + L_a\gamma_i \\
+    \quad 1 \leq i \leq K, \quad K \geq 3
+\end{gather}
 
-\begin{equation} \label{eq:brightness}
-    B_{i}(\beta,\Gamma,L_a) = \beta F_{i}(\Gamma) + \gamma_{i}L_{a}, \quad 1 \leq i \leq K, \quad K \geq 3
-\end{equation}
-\begin{equation} \label{eq:correlation}
-    F_{i}(\Gamma) = \int_{0}^{\tau} D_{i}(t)M_{i}(t - \frac{2\Gamma}{c}) dt
-\end{equation}
+% \begin{equation} \label{eq:brightness}
+%     B_{i}(\beta,\Gamma,L_a) = \beta F_{i}(\Gamma) + \gamma_{i}L_{a}, \quad 1 \leq i \leq K, \quad K \geq 3
+% \end{equation}
+
+% \begin{equation} \label{eq:correlation}
+%     F_{i}(\Gamma) = \int_{0}^{\tau} D_{i}(t)M_{i}(t - \frac{2\Gamma}{c}) dt
+% \end{equation}
 
 \paragraph{Problem Statement:} Current CW-ToF systems use sinusoidal or square waves as the coding functions (i.e modulation/demodulation functions), which are highly sub-optimal. Recent work on the signal processing theory of ToF has shown that the choice of coding function has a significant impact on measurement errors. This is due to the fact that certain functions are less robust to noise sources (photon noise, shot noise, etc) than others. \textit{The goal of this project is to explore neural network designs from which we could extract an optimal coding function or generate it.}
 
 \paragraph{Data:} We have developed a physics-based simulator for CW-ToF. We will use this to generate a synthetic data set for training, testing, and evaluating the generated coding functions. The simulator takes as input: a modulation function, a demodulation function, scene properties (true depth, ambient illumination, albedo).%, and hardware constraints (bandwidth, peak power, and total power). 
-Given these inputs, the simulator simulates various steps ofthe C-ToF imaging process, including light transport (light emission, propagation, reflection and shading) and sensor physics (de-modulation, gain, saturation, ADC noise, quantization). It uses a physically accurate affine noise model, including both photon noise and sensor read noise. A forward pass through the simulator would follow the steps outlined in figure \ref{fig:tofSimulation}.  
+ Given these inputs, the simulator simulates various steps of the CW-ToF imaging process, including light transport (light emission, propagation, reflection and shading) and sensor physics (demodulation, gain, saturation, ADC noise, quantization). It uses a physically accurate  noise model, including both photon noise and sensor read noise. A forward pass through the simulator would follow the steps outlined in figure \ref{fig:tofSimulation}.  
 
 \begin{figure}[h]
 \centerline{%
-\includegraphics[width=0.6\textwidth]{"tofSimulation"}%
+\includegraphics[width=0.6\textwidth]{"../Figures/tofSimulation"}%
 }
 \caption{Chain of steps for simulation of CW-ToF imaging.}
 \label{fig:tofSimulation}
@@ -63,33 +77,41 @@ Given these inputs, the simulator simulates various steps ofthe C-ToF imaging pr
 
 \paragraph{Preliminaries: }We present the following preliminaries that will be used when outlining each approach.
 \begin{enumerate}
-	\item{\textit{The correlation function:}} In CW-ToF cameras the only two components that we have control over are $M(t)$ and $D(t)$. These two functions are summarized by the $F(\Gamma)$. Therefore, an optimal $F(\Gamma)$ implies an optimal $M(t)$ and $D(t)$.
-	\item{\textit{Delta $\delta$ coding function:} } Note that if we let $M(t)$ be a delta function $\delta(t)$, then the correlation function, $F(\Gamma)$, will be equal to $D(t - 2\Gamma/c)$. Therefore we could simply fix $M(t)$ to a delta function and just try to find an optimal $D(t)$.
-	\item{\textit{Coding function discretization:}} $M(t)$ and $D(t)$ can be discretized as a set of $N$ linearly interpolated points. The discrete counterparts of these functions would be the $N \times 1$ vectors $\m$ and $\d$. Let $\mathbf{C}_m$ be the $N \times N$ circulant matrix constructed from $\m$ (See end of document for the description of a circulant matrix). Then the discrete version of equation \ref{eq:correlation} would be:
+	%\item{\textit{The correlation function:}} In CW-ToF cameras the only two components that we have control over are $M(t)$ and $D(t)$. These two functions are summarized by the $F(\Gamma)$. Therefore, an optimal $F(\Gamma)$ implies an optimal $M(t)$ and $D(t)$.
+	\item{\textit{Delta $\delta$ coding function:} } Note that if we let $M(t)$ be a delta function, $\delta(t)$, then the integral in equation \ref{eq:brightness} will be equal to $D(-\frac{2\Gamma}{c})$.
+	\item{\textit{Coding function discretization:}} $M(t)$ and $D(t)$ can be discretized as a set of $N$ linearly interpolated points. The discrete counterparts of these functions would be $N \times 1$ vectors ($\m$ and $\d$). %Let $\mathbf{C}_m$ be the $N \times N$ circulant matrix constructed from $\m$ (See end of document for the description of a circulant matrix). 
+	Then the discrete version of equation \ref{eq:discreteBrightness} would be:
 \end{enumerate}
 
-\begin{equation} \label{eq:discreteCorrelation}
-    \f_{i} = \mathbf{C}_{\m_i}\d_{i} \Delta t, \quad 1 \leq i \leq K, \quad K \geq 3
+% \begin{equation} \label{eq:discreteCorrelation}
+%     \f_{i} = \mathbf{C}_{\m_i}\d_{i} \Delta t, \quad 1 \leq i \leq K, \quad K \geq 3
+% \end{equation}
+
+
+\begin{equation} \label{eq:discreteBrightness}
+    b_{i} = (\beta \Delta t)\d_{i}^{t}\m_{i}  + L_a \sum_{j=1}^{N} d_{i,j}
 \end{equation}
 
-\paragraph{Regression Approach:} In this approach, the goal is to have the artificial neural network learn the depth recovery process. Given $K$ input radiance vectors ($\l_i$) the network should learn how to output the correct depth. To this end we will employ the following network design:
+\paragraph{Regression Approach (Single Pixel):} In this approach, the goal is to have the artificial neural network learn the depth recovery process. Given $K$ input radiance vectors ($\l_i$) the network should learn how to output the correct depth. To this end we will employ the following network design:
 
 \begin{enumerate}
-	\item \textit{First layer (Demodulation weights):} We want to model the vector matrix product of equation 3 with the k input radiance vectors $\l_i$ and the weights. The learned weights on this layer would correspond to the demodulation function.
-	\item \textit{First Activation (Noise modeling):} The correlation performed by the first layer does not take into account the noise sources a typical ToF is subject to (see figure \ref{fig:tofSimulation}. The noise sources are proportional to the magnitude of the correlation measurements so we can model them in this layer once we have a correlation measurement (i.e the resulting matrix vector product).
-	\item \textit{Secondary layers (Regressing depth):} The following layers in the network will learn how to use the $K$ brightness measurements to give an estimated depth measurement.
+	\item \textit{First layer (Demodulation weights):} We want to model the vector-vector product of equation \ref{eq:discreteBrightness} with the $k$ input radiance vectors $\l_i$ and the weights. The learned weights on this layer would correspond to the demodulation function.
+	\item \textit{First Activation (Noise modeling):} The correlation performed by the first layer does not take into account the noise sources a typical ToF is subject to (see figure \ref{fig:tofSimulation}. The noise sources are proportional to the magnitude of the brightness measurements ($b_i$) so we can model the noise in this layer once we compute the brightness measurement (multiplication of input vectors and first layer weights).
+	\item \textit{Secondary layers (Regressing depth):} The following layers in the network will learn how to use the $k$ brightness measurements to give an estimated depth measurement.
 	\item \textit{Output layer (depth):} This layer should output a real positive number: the depth estimate $\Gamma_{est}$.
 	\item \textit{Loss function:} The incoming radiance vectors $l_i$ will have a true depth, $\Gamma_{true}$ associated to them. We can use a square difference loss between $\Gamma_{true}$ and $\Gamma_{est}$ to propagate through the network.
 \end{enumerate}
 
 If successful, we should be able to extract an optimal demodulation function from the first layer weights, and implement the secondary layers on the hardware to compute depth.
 
+\paragraph{Regression Approach (Full Depth Image):} Note that in the previously described approach we are recovering the depth for a single point/pixel of the scene. In this approach we will scale the network described in the first approach such that we will have input measurements for all points in a scene and we will predict a depth map of a full image. 
+
 \paragraph{Generative Approach:} This approach will involve an initial literature review on Generative Neural Networks. The literature review combined with our problem specific knowledge should give us more insight on the network design. The idea is to train a network that output a optimal coding functions given scene parameters (ambient illumination, scene albedo, depth ranges).   
 
 
-\paragraph{Evaluation: } We will develop a depth error metric for a full scene (a depth map for a scene such as a wall, an object, etc) and compare each resulting coding function from each approach to commonly used coding function such as sinusoidal and square.
+\paragraph{Evaluation: } We will develop a depth error metric for a full scene (a depth map for a scene such as a wall, an object, etc) and compare each resulting coding function from each approach to commonly used coding functions such as sinusoidal and square.
 \begin{itemize}
-	\item For the regression approach, if the network is able to learn to recover accurate depth estimates we will be able to compare the network depth estimates vs. the depth estimates of a sinusoidal coding function setup running on the ToF simulator.   
+	\item For the regression approaches, if the network is able to learn to recover accurate depth estimates we will be able to compare the network depth estimates vs. the depth estimates of a sinusoidal coding function setup running on the ToF simulator.   
 	\item For the generative approach, we might end up with ready to use coding functions. So we can input those coding functions to the ToF simulator and see how they perform.
 \end{itemize}
 
@@ -98,31 +120,31 @@ If successful, we should be able to extract an optimal demodulation function fro
 
 \paragraph{Hardware: }If needed, we have access to multiple GPUs.
 
-\section*{Appendix}
+% \section*{Appendix}
 
-\paragraph{Circulant matrix:} Let $\m$ be the following $1 \times N$ vector
+% \paragraph{Circulant matrix:} Let $\m$ be the following $1 \times N$ vector
 
-\begin{equation} \label{eq:vector}
-    \m = 
-    	\begin{bmatrix}
-		    m_{1}  & m_{2} & m_{3} & \dots & m_{N} 		
-		\end{bmatrix}
-\end{equation}
+% \begin{equation} \label{eq:vector}
+%     \m = 
+%     	\begin{bmatrix}
+% 		    m_{1}  & m_{2} & m_{3} & \dots & m_{N} 		
+% 		\end{bmatrix}
+% \end{equation}
 
-Then the circulant matrix, $\mathbf{C}_{\m}$, generated by that vector is defined as the following $N \times N$ matrix
+% Then the circulant matrix, $\mathbf{C}_{\m}$, generated by that vector is defined as the following $N \times N$ matrix
 
-\begin{equation} \label{eq:circulant matrix}
-    \mathbf{C}_{\m} = 
-    	\begin{bmatrix}
-		    m_{1}  & m_{2} & m_{3} & \dots & m_{N} \\
-		    m_{N}  & m_{1} & m_{2} & \dots & m_{N-1} \\
-		    m_{N-1}  & m_{N} & m_{1} & \dots & m_{N-2} \\
-	    	\vdots & \vdots & \vdots & \ddots & \vdots \\
-		    m_{2}  & m_3 & m_4 & \dots & m_{1}
-		\end{bmatrix}
-\end{equation}
+% \begin{equation} \label{eq:circulant matrix}
+%     \mathbf{C}_{\m} = 
+%     	\begin{bmatrix}
+% 		    m_{1}  & m_{2} & m_{3} & \dots & m_{N} \\
+% 		    m_{N}  & m_{1} & m_{2} & \dots & m_{N-1} \\
+% 		    m_{N-1}  & m_{N} & m_{1} & \dots & m_{N-2} \\
+% 	    	\vdots & \vdots & \vdots & \ddots & \vdots \\
+% 		    m_{2}  & m_3 & m_4 & \dots & m_{1}
+% 		\end{bmatrix}
+% \end{equation}
 
-\bibliographystyle{abbrv}
-\bibliography{proposal}
+% \bibliographystyle{abbrv}
+% \bibliography{proposal}
 
 \end{document}
