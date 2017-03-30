@@ -3,7 +3,15 @@ Finding optimal coding functions for continuous wave time of flight with neural 
 
 
 ## Table of Contents
-1. [ML Environment Setup](#mlsetup)
+1. [Neural Architectures](#architectures)
+2. [ML Environment Setup](#mlsetup)
+
+<a name="architectures">
+</a>
+
+## Neural Architectures 
+
+![Neural Architecture for Single Pixel Depth Recovery](https://github.com/felipegb94/NeuralWaveToF/blob/master/ArchitectureDiagrams/NeuralArchitecture_SinglePixelDepth.png)
 
 <a name="mlsetup">
 </a>
