@@ -45,7 +45,7 @@ We will use anaconda to create a virtual environment that uses python 2.7. Why 2
 2. Create an conda environment with the dependencies:
 
 ```
-    conda create --name mlenv python=2.7 numpy scipy pandas scikit-learn h5py
+    conda create --name mlenv python=2.7 numpy scipy pandas matplotlib scikit-learn h5py
 ```
 
 3. Activate environment
