@@ -5,6 +5,8 @@ from Camera import Camera
 import PlotUtils
 import Utils
 
+import pdb
+
 speedOfLight = 2.998e+11 # millimeters per second
 
 k = 3 # Number of measurements
@@ -54,6 +56,7 @@ demod = np.zeros((k,nDepths),dtype=float)
 
 for i in range(0,k):
 	mod[i,0] = 1. # set delta coding function
+	# mod[i,:] = 0.5 + 0.5*np.cos((2*np.pi*dRange/nDepths)) # set sinusoidal coding function
 	mod[i,:] = mod[i,:] / np.sum(mod[i,:]) # normalize so that sum is equal to 1
 	demod[i,:] = 0.5 + 0.5*np.cos((2*np.pi*dRange/nDepths) - 2*i*np.pi/k)  
 
@@ -63,61 +66,105 @@ for i in range(0,k):
 ########################### Compute Intensities ########################################
 
 modPeriodEffective = nDepths * timeRes
+nPeriods = cam.exposureTime / modPeriodEffective  # number of periods we integrate for
 mod = mod * light.aveE * modPeriodEffective / timeRes # scale mod so that it is in # photons 
 
 grayIMat = np.zeros((cam.nRows,cam.nCols,k))
 
+nDataPoints = 100000
+trueDists = np.random.uniform(low=0.,high=10000.,size=nDataPoints)
+print trueDists
+bMeasurements = np.zeros((nDataPoints,k))
+
 for i in range(0,k):
 
-	currMod = mod[0,:]
-	currDemod = demod[0,:]
+	currMod = mod[i,:]
+	currDemod = demod[i,:]
 	circulantMod = Utils.GenerateCirculantMatrix(currMod)
 	correlation = np.matmul(Utils.GenerateCirculantMatrix(currMod),currDemod) * timeRes
+	# print currMod
+	# print currDemod
+	for dIndex in range(0,nDataPoints):
+		# Table lookup: multiply distance by 1000 to transform to millimeters
+		# Find index i s.t dRange(i)==distPointLight*1000, and get the correlation value at i. 
+		# We will have one sample per pixel.
+		# corrFunctionSample = np.interp(distPointLight * 1000, dRange, correlation)
+		corrFunctionSample = np.interp(trueDists[dIndex], dRange, correlation)
 
-	# Table lookup: multiply distance by 1000 to transform to millimeters
-	# Find the index i where dRange(i) == distPointLight * 1000 , and get the correlation value at that index 
-	# We will have one sample per pixel.
-	corrFunctionSample = np.interp(distPointLight * 1000, dRange, correlation)
-	kappa = sum(currDemod) * timeRes # Integral of demodulation function over 1 period
-	nPeriods = cam.exposureTime / modPeriodEffective  # number of periods we integrate for
+		kappa = sum(currDemod) * timeRes # Integral of demodulation function over 1 period
 
-	bVals = np.zeros(betaMat.shape)
-	for j in range(0, bVals.shape[2]):
-		bVals[:,:,j] = (nPeriods) * (np.multiply(betaMat[:,:,j], corrFunctionSample) + (ambientAveE * kappa * chiMat[:,:,j]))
-	#### end bVals for loop
+		bVals = np.zeros(betaMat.shape)
+		for j in range(0, bVals.shape[2]):
+			bVals[:,:,j] = (nPeriods) * (np.multiply(betaMat[:,:,j], corrFunctionSample) + 
+						(ambientAveE * kappa * chiMat[:,:,j]))
+		#### end bVals for loop
 
-	print bVals
+		# print bVals
 
 	####################### Applying perspective projection ################################
 
 	# Basically fit all the scene into the NRox X nCol pixel matrix in the camera
-	# 	Take into account that multiple pixel intensities will be mapping into multiple pixels...
-	# This is not needed for a single point and pixel setup since we are just mapping to that point to that pixel.
+	# Take into account that multiple pixel intensities will be mapping into multiple pixels...
+	# Not needed for a single point/pixel setup b.c we are just mapping that point to that pixel.
 
-	iVals = bVals
+		iVals = bVals
 
 	####################### Applying noise ################################
 
-	# generate photon noise, one for each rgb channel
-	photonNoiseVariance = np.sqrt(iVals)
-	photonNoise = np.multiply(photonNoiseVariance, np.random.normal(0,1,iVals.shape))
-	# generate read noise, one for each rgb channel
-	readNoise = np.multiply(cam.readNoise,np.random.normal(0,1,iVals.shape))
-	noise = photonNoise + readNoise
+		# generate photon noise, one for each rgb channel
+		photonNoiseVariance = np.sqrt(iVals)
+		photonNoise = np.multiply(photonNoiseVariance, np.random.normal(0,1,iVals.shape))
+		# generate read noise, one for each rgb channel
+		readNoise = np.multiply(cam.readNoise,np.random.normal(0,1,iVals.shape))
+		noise = photonNoise + readNoise
 
-	# Computing noisy intensity, and applying bounds
-	iMat = np.maximum(np.minimum(iVals + noise, cam.fullWellCap), 0)
+		# Computing noisy intensity, and applying bounds
+		iMat = np.maximum(np.minimum(iVals + noise, cam.fullWellCap), 0)
 
-	# Applying gain, and quantization
-	iMat = iMat / cam.gain;               
+		# Applying gain, and quantization
+		iMat = iMat / cam.gain;               
 
-	# converting photons to digital number
-	iMat = np.round(iMat) / pow(2,cam.numBits); 
-	print iMat
+		# converting photons to digital number
+		iMat = np.round(iMat) / pow(2,cam.numBits); 
+		# print iMat
 
-	# convert to grayscale
-	grayIMat[:,:,i] = (iMat[:,:,0] * 0.3) + (iMat[:,:,1] * 0.59) + (iMat[:,:,2] * 0.11)
-	print grayIMat
+		# convert to grayscale
+		bMeasurements[dIndex,i] = (iMat[:,:,0] * 0.3) + (iMat[:,:,1] * 0.59) + (iMat[:,:,2] * 0.11)
+		# print (iMat[:,:,0] * 0.3) + (iMat[:,:,1] * 0.59) + (iMat[:,:,2] * 0.11)
+		# grayIMat[:,:,i] = (iMat[:,:,0] * 0.3) + (iMat[:,:,1] * 0.59) + (iMat[:,:,2] * 0.11)
 
-#### end modulation for loop
+print bMeasurements
+print bMeasurements.shape
+print trueDists
+print trueDists.shape
+print trueDists.reshape((nDataPoints,1)).shape
+trueDists = trueDists.reshape((nDataPoints,1))
+
+output = np.concatenate((trueDists,bMeasurements),axis=1)
+print output 
+print output.shape 
+
+np.savetxt("../Datasets/MediumDepthData.csv",output,delimiter=",")
+
+# a = np.array([trueDists,])
+
+################ Validate recovered depth #########################
+# dist = trueDists[0]
+# B = bMeasurements[0,:]
+# C = np.matrix([ [1,np.cos(0),np.sin(0)],
+# 				[1,np.cos(2*np.pi/3),np.sin(2*np.pi/3)],
+# 				[1,np.cos(4*np.pi/3),np.sin(4*np.pi/3)]
+# 			  ])
+# X = np.linalg.solve(C, B)
+# phi = np.arccos(X[1]/(np.sqrt((X[1]*X[1]) + (X[2]*X[2]))))
+# frequency = 1/modPeriodEffective
+# omega = 2*np.pi*frequency
+# print "phi = {}".format(phi)
+# print "real depth = {}".format(dist)
+# print "recovered depth = {}".format(phi*speedOfLight/(2*omega))
+
+
+# output = np.array([np.reshape(trueDists),bMeasurements])
+# print output
+### end modulation for loop
 
