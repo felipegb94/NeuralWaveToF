@@ -8,11 +8,11 @@ class Camera(object):
 		center: (x,y,z) coordinates.
 		downVector:  
 		lookAtVector: 
-		nRow: Resolution component
-		nCol: Resolution component
+		nRows: Resolution component
+		nCols: Resolution component
 		fLengthScaling: Focal length scaling factor
-		fLength: focalLength, nRow * nCol * fLengthScaling
-		principalPoint: (nRow/2, nCol/2)
+		fLength: focalLength, nRows * nCols * fLengthScaling
+		principalPoint: (nRows/2, nCols/2)
 		pixelSize:  2e^(-6)
 		exposureTime: default - 0.1
 		readNoise: default - 10
@@ -29,16 +29,16 @@ class Camera(object):
 		TMatrix: -RMatrix * center  
 	"""
 
-	def __init__(self, center=np.zeros((1,3)), downVector=np.array([[0.,-1.,0.]]), lookAtVector=np.array([[0.,0.,-1.]]), nRow=1, nCol=1, fLengthScaling=3/8, pixelSize=2.*pow(10.,-6), exposureTime=0.1, readNoise=10., fullWellCap=85000, numBits=14, fNumber=2.5):
+	def __init__(self, center=np.zeros((1,3)), downVector=np.array([[0.,-1.,0.]]), lookAtVector=np.array([[0.,0.,-1.]]), nRows=1, nCols=1, fLengthScaling=3/8, pixelSize=2*pow(10.,-6), exposureTime=0.1, readNoise=10., fullWellCap=85000, numBits=14, fNumber=2.5):
 		"""Return a new camera object."""
 		self.center = center
 		self.downVector = downVector
 		self.lookAtVector = lookAtVector
-		self.nRow = nRow
-		self.nCol = nCol
+		self.nRows = nRows
+		self.nCols = nCols
 		self.fLengthScaling = fLengthScaling
-		self.fLength = nRow * nCol * fLengthScaling
-		self.principalPoint = np.array((float(nRow)/2,float(nCol)/2))
+		self.fLength = nRows * nCols * fLengthScaling
+		self.principalPoint = np.array((float(nRows)/2,float(nCols)/2))
 		self.pixelSize = pixelSize
 		self.exposureTime = exposureTime
 		self.readNoise = readNoise
@@ -68,7 +68,7 @@ class Camera(object):
 	def __str__(self):
 		string = "Camera:\n"
 		string = string +  "    center (x,y,z): " + str(self.center) + "\n" 
-		string = string + "    resolution (nRow,nCol): " + str(self.nRow*self.nCol) + " (" +str(self.nRow) + ", " + str(self.nCol) + ")" + "\n" 
+		string = string + "    resolution (nRows,nCols): " + str(self.nRows*self.nCols) + " (" +str(self.nRows) + ", " + str(self.nCols) + ")" + "\n" 
 		string = string + "    focal length: " + str(self.fLength) + "\n" 
 		string = string + "    downVector (Ax,Ay,Az): " + str(self.downVector) + "\n" 
 		string = string + "    lookAtVector (Ax,Ay,Az): " + str(self.lookAtVector) + "\n" 

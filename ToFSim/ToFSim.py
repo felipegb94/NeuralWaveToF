@@ -1,102 +1,123 @@
-# Python imports
-import sys
-import math
-# Library imports
 import numpy as np
-import pandas as pd
-from scipy import signal
-import matplotlib.pyplot as plt
-plt.style.use('ggplot')
+from Point import Point
+from LightSource import LightSource
+from Camera import Camera
+import PlotUtils
+import Utils
 
+speedOfLight = 2.998e+11 # millimeters per second
 
-# Parameters
-c = 299792458. # Speed of light
-N = 10000 # Number of points to represent modulation and demodulation functions
-pi = np.pi
+k = 3 # Number of measurements
+dMax = 10000 # max depth in millimeter
+dSampleMod = 1 # sampling rate in depth values for mod/demod functions
+dRange = np.arange(0, dMax+1, dSampleMod) # All possible depths that can be recovered
+nDepths = dRange.size
+timeRes = 2 * dSampleMod / speedOfLight # Time resolution of mod/demod in seconds
+deltaT = timeRes # time resolution is the same as the delta time
+print(dRange)
+print(nDepths)
 
-# Mod and demod parameters
-shift = 0.
-f = 10000000. # 10Mhz
-T = 1/f # period
-n_periods = 10
-integration_time = n_periods*T # n periods
-omega = 2*pi * f # angular frequency
-max_depth = c * T / 2
-x = np.linspace(0, integration_time, N)
+ambientAveE = pow(10,19) # ambient illumination strength (avg # of photons)
 
-# Scene parameters
-depth = max_depth/5 # 5 meters
-beta = 0.5 # reflectance ()
-L_a = 1 # Ambient illumination
-shift = 2*depth/c
+posPoint = np.array([0.,0.,0.])
+posLightCamera = np.array([0.,0.,5.])
+px = Point(coords=posPoint)
+light = LightSource(coords=posLightCamera)
+cam = Camera(center=posLightCamera)
+# print px
+# print light
+# print cam
 
-print "For frequency: {} hz, Max depth: {} meters".format(f,max_depth)
+distPointLight = pow(np.sum(np.power(px.coords - light.coords,2)),0.5) # Distance between point and light
+distTrue = distPointLight
+cosTheta = np.dot(light.coords - px.coords, px.N.transpose()) / distPointLight # dot product between scene normals and the line joining light source and scene point. Normalize by distance
 
-# Create modulation and demodulation functions
-I = (np.cos(omega*x) + 1)*0.5
-R1 = (np.cos(omega*x + 0) + 1)*0.5 # Demodulation function 1  
-R2 = (np.cos(omega*x + (2*pi/3)) + 1)*0.5  # Demodulation function 2
-R3 = (np.cos(omega*x + (4*pi/3)) + 1)*0.5  # Demodulation function 3
+betaMat = np.zeros((1,1,3))
+betaMat[0,0,:] = 1 / (pow(distPointLight,2))
+betaMat[0,0,:] = betaMat[0,0,:] * cosTheta # multiply all elems by cosTheta
+betaMat[0,0,:] = np.multiply(betaMat[0,0,:], px.albedo/np.pi) # element-wise multiplication
+betaMat[0,0,:] = betaMat[0,0,:] * (np.pi/4) / pow(cam.fNumber,2) 
+betaMat[0,0,:] = betaMat[0,0,:] * pow(cam.pixelSize,2) 
+betaMat = betaMat.clip(min=0) # make all negative entries 0
 
+chiMat = np.zeros((1,1,3))
+# Including the effect of shading and albedo and conversion from irradiance to radiance assuming Lambertian surface (assuming ambient source is at infinity so no foreshortening, but the same direction as light source, so some costheta effect)
+chiMat[0,0,:]  = cosTheta * px.albedo / np.pi;     
+#Including the effect of lens aperture during conversion from scene radiance to camera irradiance. Assuming scene angle (angle made by line joining pixel to scene patch with the optical axis) is 0 so that cos(scene Angle)^4 = 1 (paraxial assumption)
+chiMat[0,0,:]  = chiMat[0,0,:] * (np.pi/4) / pow(cam.fNumber,2);   
+# Converting irradiance to flux (multiply by pixel area)                        
+chiMat[0,0,:]  = chiMat[0,0,:] * pow(cam.pixelSize,2);
 
-# Shifted function
-I_shifted = (np.cos(omega*(x - shift)) + 1)*0.5
-L = (beta * I_shifted) + L_a 
+########################### Make coding functions ########################################
+mod = np.zeros((k,nDepths),dtype=float)
+demod = np.zeros((k,nDepths),dtype=float)
 
-B1 = L.dot(R1)  
-B2 = L.dot(R2)
-B3 = L.dot(R3)
-print "Brightness measurements over {} periods: ({},{},{})".format(n_periods,B1,B2,B3)
+for i in range(0,k):
+	mod[i,0] = 1. # set delta coding function
+	mod[i,:] = mod[i,:] / np.sum(mod[i,:]) # normalize so that sum is equal to 1
+	demod[i,:] = 0.5 + 0.5*np.cos((2*np.pi*dRange/nDepths) - 2*i*np.pi/k)  
 
-stddev_photon1 = np.sqrt(B1)
-stddev_photon2 = np.sqrt(B2)
-stddev_photon3 = np.sqrt(B3)
-noise_photon1 = np.random.normal(0,stddev_photon1)
-noise_photon2 = np.random.normal(0,stddev_photon2)
-noise_photon3 = np.random.normal(0,stddev_photon3)
+# PlotUtils.PlotN(dRange*timeRes,mod,xlabel='time',ylabel='exposure',title='modulation codes')
+# PlotUtils.PlotN(dRange*timeRes,demod,xlabel='time',ylabel='exposure',title='demodulation codes')
 
+########################### Compute Intensities ########################################
 
-B = np.array([B1+noise_photon1,B2+noise_photon2,B3+noise_photon3])
+modPeriodEffective = nDepths * timeRes
+mod = mod * light.aveE * modPeriodEffective / timeRes # scale mod so that it is in # photons 
 
-# ADD Gain and Sensor Saturation
+grayIMat = np.zeros((cam.nRows,cam.nCols,k))
 
-# Read and Analog-Digital-Conversion Noise depends on the gain and sensor saturation (scene indep)
-# noise_read1 = np.random.normal(0,stddev_photon1)
-# noise_read2 = np.random.normal(0,stddev_photon2)
-# noise_read3 = np.random.normal(0,stddev_photon3)
+for i in range(0,k):
 
+	currMod = mod[0,:]
+	currDemod = demod[0,:]
+	circulantMod = Utils.GenerateCirculantMatrix(currMod)
+	correlation = np.matmul(Utils.GenerateCirculantMatrix(currMod),currDemod) * timeRes
 
-C = np.matrix([[1,np.cos(0),np.sin(0)],[1,np.cos(2*pi/3),np.sin(2*pi/3)],[1,np.cos(4*pi/3),np.sin(4*pi/3)]])
-print B
-print C
-X = np.linalg.solve(C, B)
-print X
+	# Table lookup: multiply distance by 1000 to transform to millimeters
+	# Find the index i where dRange(i) == distPointLight * 1000 , and get the correlation value at that index 
+	# We will have one sample per pixel.
+	corrFunctionSample = np.interp(distPointLight * 1000, dRange, correlation)
+	kappa = sum(currDemod) * timeRes # Integral of demodulation function over 1 period
+	nPeriods = cam.exposureTime / modPeriodEffective  # number of periods we integrate for
 
-phi = np.arccos(X[1]/(np.sqrt((X[1]*X[1]) + (X[2]*X[2]))))
-print "phi = {}".format(phi)
-print "real depth = {}".format(depth)
-print "recovered depth = {}".format(phi*c/(2*omega))
+	bVals = np.zeros(betaMat.shape)
+	for j in range(0, bVals.shape[2]):
+		bVals[:,:,j] = (nPeriods) * (np.multiply(betaMat[:,:,j], corrFunctionSample) + (ambientAveE * kappa * chiMat[:,:,j]))
+	#### end bVals for loop
 
+	print bVals
 
-# fig, ax = plt.subplots(nrows=1,ncols=1)
-# ax.plot(x,mod_f, label='Mod',linewidth=2.0)
-# ax.plot(x,I_shifted, label='Demod',linewidth=2.0)
-# ax.legend(shadow=True,fontsize=14)
-# ax.set_ylim([0,1.2*np.max([np.max(mod_f),np.max(I_shifted)])])
-# ax.set_title('Modulation/Demodulation',fontsize=14,fontweight='bold')
-# ax.set_xlabel('time (s)',fontsize=14,fontweight='bold')
-# ax.set_ylabel('magnitude',fontsize=14,fontweight='bold')
-# plt.show()
+	####################### Applying perspective projection ################################
 
-# fig, ax = plt.subplots(nrows=1,ncols=1)
-# ax.plot(x,R1, label='Demod1',linewidth=2.0)
-# ax.plot(x,R2, label='Demod2',linewidth=2.0)
-# ax.plot(x,R3, label='Demod3',linewidth=2.0)
-# ax.legend(shadow=True,fontsize=14)
-# ax.set_ylim([0,1.2*np.max([np.max(R1),np.max(R2)])])
-# ax.set_title('Modulation/Demodulation',fontsize=14,fontweight='bold')
-# ax.set_xlabel('time (s)',fontsize=14,fontweight='bold')
-# ax.set_ylabel('magnitude',fontsize=14,fontweight='bold')
-# plt.show()
+	# Basically fit all the scene into the NRox X nCol pixel matrix in the camera
+	# 	Take into account that multiple pixel intensities will be mapping into multiple pixels...
+	# This is not needed for a single point and pixel setup since we are just mapping to that point to that pixel.
 
+	iVals = bVals
+
+	####################### Applying noise ################################
+
+	# generate photon noise, one for each rgb channel
+	photonNoiseVariance = np.sqrt(iVals)
+	photonNoise = np.multiply(photonNoiseVariance, np.random.normal(0,1,iVals.shape))
+	# generate read noise, one for each rgb channel
+	readNoise = np.multiply(cam.readNoise,np.random.normal(0,1,iVals.shape))
+	noise = photonNoise + readNoise
+
+	# Computing noisy intensity, and applying bounds
+	iMat = np.maximum(np.minimum(iVals + noise, cam.fullWellCap), 0)
+
+	# Applying gain, and quantization
+	iMat = iMat / cam.gain;               
+
+	# converting photons to digital number
+	iMat = np.round(iMat) / pow(2,cam.numBits); 
+	print iMat
+
+	# convert to grayscale
+	grayIMat[:,:,i] = (iMat[:,:,0] * 0.3) + (iMat[:,:,1] * 0.59) + (iMat[:,:,2] * 0.11)
+	print grayIMat
+
+#### end modulation for loop
 
