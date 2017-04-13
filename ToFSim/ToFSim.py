@@ -55,8 +55,8 @@ mod = np.zeros((k,nDepths),dtype=float)
 demod = np.zeros((k,nDepths),dtype=float)
 
 for i in range(0,k):
-	mod[i,0] = 1. # set delta coding function
-	# mod[i,:] = 0.5 + 0.5*np.cos((2*np.pi*dRange/nDepths)) # set sinusoidal coding function
+	# mod[i,0] = 1. # set delta coding function
+	mod[i,:] = 0.5 + 0.5*np.cos((2*np.pi*dRange/nDepths)) # set sinusoidal coding function
 	mod[i,:] = mod[i,:] / np.sum(mod[i,:]) # normalize so that sum is equal to 1
 	demod[i,:] = 0.5 + 0.5*np.cos((2*np.pi*dRange/nDepths) - 2*i*np.pi/k)  
 
@@ -71,8 +71,8 @@ mod = mod * light.aveE * modPeriodEffective / timeRes # scale mod so that it is 
 
 grayIMat = np.zeros((cam.nRows,cam.nCols,k))
 
-nDataPoints = 100000
-trueDists = np.random.uniform(low=0.,high=10000.,size=nDataPoints)
+nDataPoints = 10000
+trueDists = np.random.uniform(low=0.,high=5000.,size=nDataPoints)
 print trueDists
 bMeasurements = np.zeros((nDataPoints,k))
 
@@ -144,7 +144,7 @@ output = np.concatenate((trueDists,bMeasurements),axis=1)
 print output 
 print output.shape 
 
-np.savetxt("../Datasets/MediumDepthData.csv",output,delimiter=",")
+np.savetxt("../Datasets/EasyDepthData_Test.csv",output,delimiter=",")
 
 # a = np.array([trueDists,])
 
