@@ -4,9 +4,9 @@ Finding optimal coding functions for continuous wave time of flight with neural 
 
 ## Table of Contents
 1. [Neural Architectures](#architectures)
-2. [Dataset Specifications](#datasetspecs)
-3. [Dataset Specifications](#datasetspecs)
-4. [ML Environment Setup](#mlsetup)
+2. [Dataset](#dataset)
+..1. [Datasets](#datasetspecs)
+3. [ML Environment Setup](#mlsetup)
 
 
 <a name="architectures">
@@ -20,9 +20,9 @@ Finding optimal coding functions for continuous wave time of flight with neural 
 <a name="datasetspecs">
 </a>
 
-## Dataset Specifications
+## Datasets
 
-The dataset is composed of fully specified 3D scene points. But, what is needed to fully describe a 3D scene point? We describe this below.
+The dataset folder contains multiple datasets generated with ToFSim with various scene parameter configurations. 
 
 #### Scene Specifications
 
