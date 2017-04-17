@@ -5,7 +5,6 @@ Finding optimal coding functions for continuous wave time of flight with neural 
 ## Table of Contents
 1. [Neural Architectures](#architectures)
 2. [Dataset](#dataset)
-..1. [Datasets](#datasetspecs)
 3. [ML Environment Setup](#mlsetup)
 
 
@@ -17,7 +16,7 @@ Finding optimal coding functions for continuous wave time of flight with neural 
 ![Neural Architecture for Single Pixel Depth Recovery](https://github.com/felipegb94/NeuralWaveToF/blob/master/ArchitectureDiagrams/NeuralArchitecture_SinglePixelDepth.png)
 
 
-<a name="datasetspecs">
+<a name="datasets">
 </a>
 
 ## Datasets
@@ -30,8 +29,6 @@ The dataset folder contains multiple datasets generated with ToFSim with various
 * **Normals:** (Nx,Ny,Nz). The normal of the 3D scene point, i.e its orientation.
 * **Albedos:** 
 
-
-## Dataset Format
 
 
 <a name="mlsetup">
