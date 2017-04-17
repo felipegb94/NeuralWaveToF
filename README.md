@@ -4,7 +4,7 @@ Finding optimal coding functions for continuous wave time of flight with neural 
 
 ## Table of Contents
 1. [Neural Architectures](#architectures)
-2. [Dataset](#dataset)
+2. [Datasets](#datasets)
 3. [ML Environment Setup](#mlsetup)
 
 
