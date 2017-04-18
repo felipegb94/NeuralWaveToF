@@ -1,6 +1,6 @@
 pdf:
-	pdflatex NeuralArchitecture_SinglePixelDepth
-	convert -density 150 NeuralArchitecture_SinglePixelDepth.pdf -quality 90 NeuralArchitecture_SinglePixelDepth.png
+	pdflatex NeuralArchitecture_BlackBox
+	convert -density 150 NeuralArchitecture_BlackBox.pdf -quality 90 NeuralArchitecture_BlackBox.png
 
 all:
 	make pdf; make pdf; make pdf

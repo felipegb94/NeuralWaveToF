@@ -1,6 +1,9 @@
 ############## Custom Gitignore ############################
 
-
+.dropbox
+Datasets/Sinusoid3
+Datasets/Delta3
+Datasets/SinusoidSinusoid3
 
 ############## Latex Gitignore ############################
 ## Core latex/pdflatex auxiliary files:
