@@ -8,22 +8,31 @@ import numpy as np
 from keras import backend as K
 import random
 
-data_folder = '../Datasets/'
-train_data_file = data_folder + 'EasyDepthData_Train.csv'
-tune_data_file  = data_folder + 'EasyDepthData_Tune.csv'
-test_data_file  = data_folder + 'EasyDepthData_Test.csv'
-
+data_folder = '/Users/zhicheng/Desktop/SinusoidSinusoid3/'
+# 1.
+# data_file_name = 'SinusoidSinusoid3_18_1.csv'
+# 2.
+data_file_name = 'SinusoidSinusoid3_18_10.csv'
+# 3.
+# data_file_name = 'SinusoidSinusoid3_18_50.csv'
+# 4.
+# data_file_name = 'SinusoidSinusoid3_19_1.csv'
+# 5.
+# data_file_name = 'SinusoidSinusoid3_19_10.csv'
+# 6.
+# data_file_name = 'SinusoidSinusoid3_19_50.csv'
+# 7.
+# data_file_name = 'SinusoidSinusoid3_rand_rand.csv'
 
 def read_data(file):
     data, label = [], []
-    with open(file) as f:
+    with open(data_folder + file) as f:
         for line in f:
             line = line.strip('\n')
             line_split = line.split(',')
             data.append([float(line_split[1]), float(line_split[2]), float(line_split[3])])
             label.append([float(line_split[0])])
     return np.array(data), np.array(label)
-
 
 
 model = Sequential()
@@ -35,11 +44,12 @@ model.add(Dense(units=1, activation='relu'))
 model.compile(optimizer='sgd', loss='mean_absolute_error')
 
 
-train_data, train_label = read_data(train_data_file)
-tune_data,  tune_label  = read_data(tune_data_file)
-test_data,  test_label  = read_data(test_data_file)
+data, label = read_data(data_file_name)
+test_data, test_label = data[:10000], label[:10000]
+tune_data, tune_label = data[10000:20000], label[10000:20000]
+train_data, train_label = data[20000:], label[20000:]
 
-model.fit(train_data, train_label, epochs=200, batch_size=128)
+model.fit(train_data, train_label, epochs=500, batch_size=128)
 
 loss_and_metrics = model.evaluate(test_data, test_label, batch_size=128)
 
