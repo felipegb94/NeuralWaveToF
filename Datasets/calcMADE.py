@@ -1,7 +1,7 @@
 import numpy as np
 import math
 
-# This script calculates the mean square difference error between the calculated depth and true depth
+# This script calculates the mean absolute difference error between the calculated depth and true depth
 
 # Parameters to calculate the frequency and depth ranges
 speedOfLight = 2.998e+11 # millimeters per second
@@ -14,12 +14,21 @@ modPeriodEffective = nDepths * timeRes
 frequency = 1/modPeriodEffective
 omega = 2*np.pi*frequency
 
+codingFunction = "SinusoidSinusoid"
+k = 3 # Number of measurements
+
 # Input data
-filename = "EasyDepthData_Test.csv" 
+datasetDirName = codingFunction + str(k)
+# filename = datasetDirName + "/" + datasetDirName + "_" + str(19) + "_" + str(50) + ".csv" 
+filename = datasetDirName + "/" + datasetDirName + "_rand_rand.csv"
+
 data = np.loadtxt(filename, delimiter=',')
 trueDepths = data[:,0]
-brightnessMeasurements = data[:,1:4]
+
+brightnessMeasurements = data[0:10000,1:4]
 (N, k) = brightnessMeasurements.shape
+
+print "Test set size: "  + str(N)
 
 C = np.matrix([ 
 				[1, np.cos(0),			np.sin(0)],
@@ -28,32 +37,22 @@ C = np.matrix([
 			  ])
 
 sumAbsDiff = 0.
+sumSqDiff = 0.
 
 for i in range(0,N):
 	B = brightnessMeasurements[i,:]
 	X = np.linalg.solve(C, B)
 	phi = np.arccos(X[1]/(np.sqrt((X[1]*X[1]) + (X[2]*X[2]))))
 	estimatedDepth = phi*speedOfLight/(2*omega)
-	absDiff = math.fabs(trueDepths[i]-estimatedDepth)
+	diff = (trueDepths[i]-estimatedDepth)
+	absDiff = math.fabs(diff)
+	sqDiff = (diff)*diff
 	sumAbsDiff = sumAbsDiff + absDiff
+	sumSqDiff = sumSqDiff + sqDiff
 	# print "phi = {}".format(phi)
 	# print "real depth = {}".format(trueDepths[i])
 	# print "recovered depth = {}".format(estimatedDepth)	
 	# print "absolute difference = {}".format(absDiff)
 
 print "mean absolute difference = {}".format(sumAbsDiff/N)
-
-################ Validate recovered depth #########################
-# dist = trueDists[0]
-# B = bMeasurements[0,:]
-
-# frequency = 1/modPeriodEffective
-# omega = 2*np.pi*frequency
-# print "phi = {}".format(phi)
-# print "real depth = {}".format(dist)
-# print "recovered depth = {}".format(phi*speedOfLight/(2*omega))
-
-
-# output = np.array([np.reshape(trueDists),bMeasurements])
-# print output
-### end modulation for loop
+print "mean square difference = {}".format(sumSqDiff/N)

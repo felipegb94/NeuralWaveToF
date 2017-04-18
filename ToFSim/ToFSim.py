@@ -1,16 +1,23 @@
+# Python Imports
+import sys
+import os
+import json
+# Library Imports
 import numpy as np
+# Local Imports
 from Point import Point
 from LightSource import LightSource
 from Camera import Camera
 import PlotUtils
 import Utils
 
-import pdb
 
 speedOfLight = 2.998e+11 # millimeters per second
 
+codingFunction = "SinusoidSinusoid"
 k = 3 # Number of measurements
-dMax = 10000 # max depth in millimeter
+maxDepth = 5000
+dMax = 2 * maxDepth # max depth in millimeter
 dSampleMod = 1 # sampling rate in depth values for mod/demod functions
 dRange = np.arange(0, dMax+1, dSampleMod) # All possible depths that can be recovered
 nDepths = dRange.size
@@ -19,16 +26,19 @@ deltaT = timeRes # time resolution is the same as the delta time
 print(dRange)
 print(nDepths)
 
-ambientAveE = pow(10,19) # ambient illumination strength (avg # of photons)
+nDataPoints = 100000
+
+aveSrcEnergyExponent = 19
+aveAmbientEnergyExponent = np.random.uniform(18,19,nDataPoints)
+ambientAveEAll = pow(10,aveAmbientEnergyExponent) # ambient illumination strength (avg # of photons)
+readNoiseVariance = np.random.uniform(1,50,nDataPoints)
 
 posPoint = np.array([0.,0.,0.])
 posLightCamera = np.array([0.,0.,5.])
 px = Point(coords=posPoint)
-light = LightSource(coords=posLightCamera)
-cam = Camera(center=posLightCamera)
-# print px
-# print light
-# print cam
+light = LightSource(coords=posLightCamera,aveE=pow(10.0,aveSrcEnergyExponent))
+cam = Camera(center=posLightCamera, readNoise=readNoiseVariance[0], fullWellCap=100000)
+
 
 distPointLight = pow(np.sum(np.power(px.coords - light.coords,2)),0.5) # Distance between point and light
 distTrue = distPointLight
@@ -54,12 +64,14 @@ chiMat[0,0,:]  = chiMat[0,0,:] * pow(cam.pixelSize,2);
 mod = np.zeros((k,nDepths),dtype=float)
 demod = np.zeros((k,nDepths),dtype=float)
 
-for i in range(0,k):
-	# mod[i,0] = 1. # set delta coding function
-	mod[i,:] = 0.5 + 0.5*np.cos((2*np.pi*dRange/nDepths)) # set sinusoidal coding function
-	mod[i,:] = mod[i,:] / np.sum(mod[i,:]) # normalize so that sum is equal to 1
-	demod[i,:] = 0.5 + 0.5*np.cos((2*np.pi*dRange/nDepths) - 2*i*np.pi/k)  
-
+if codingFunction == "SinusoidSinusoid":
+	for i in range(0,k):
+		# mod[i,0] = 1. # set delta coding function
+		mod[i,:] = 0.5 + 0.5*np.cos((2*np.pi*dRange/nDepths)) # set sinusoidal coding function
+		mod[i,:] = mod[i,:] / np.sum(mod[i,:]) # normalize so that sum is equal to 1
+		demod[i,:] = 0.5 + 0.5*np.cos((2*np.pi*dRange/nDepths) - 2*i*np.pi/k)  
+else:
+	sys.exit("Error: Incorrect Coding Function... terminating program")
 # PlotUtils.PlotN(dRange*timeRes,mod,xlabel='time',ylabel='exposure',title='modulation codes')
 # PlotUtils.PlotN(dRange*timeRes,demod,xlabel='time',ylabel='exposure',title='demodulation codes')
 
@@ -71,8 +83,7 @@ mod = mod * light.aveE * modPeriodEffective / timeRes # scale mod so that it is 
 
 grayIMat = np.zeros((cam.nRows,cam.nCols,k))
 
-nDataPoints = 10000
-trueDists = np.random.uniform(low=0.,high=5000.,size=nDataPoints)
+trueDists = np.random.uniform(low=0.,high=maxDepth,size=nDataPoints)
 print trueDists
 bMeasurements = np.zeros((nDataPoints,k))
 
@@ -82,9 +93,11 @@ for i in range(0,k):
 	currDemod = demod[i,:]
 	circulantMod = Utils.GenerateCirculantMatrix(currMod)
 	correlation = np.matmul(Utils.GenerateCirculantMatrix(currMod),currDemod) * timeRes
-	# print currMod
-	# print currDemod
+
 	for dIndex in range(0,nDataPoints):
+		ambientAveE = ambientAveEAll[dIndex]
+		cam.readNoise = readNoiseVariance[dIndex]
+
 		# Table lookup: multiply distance by 1000 to transform to millimeters
 		# Find index i s.t dRange(i)==distPointLight*1000, and get the correlation value at i. 
 		# We will have one sample per pixel.
@@ -118,8 +131,18 @@ for i in range(0,k):
 		readNoise = np.multiply(cam.readNoise,np.random.normal(0,1,iVals.shape))
 		noise = photonNoise + readNoise
 
+		iMatTmp = iVals + noise
+		fullWellIndeces = np.where(iMatTmp >= cam.fullWellCap)
+		if(len(fullWellIndeces[0]) != 0):
+			print iMatTmp
+			print(iMatTmp[fullWellIndeces])
+			# sys.exit("Error wellCap is FULL! ")
+
+
 		# Computing noisy intensity, and applying bounds
 		iMat = np.maximum(np.minimum(iVals + noise, cam.fullWellCap), 0)
+
+
 
 		# Applying gain, and quantization
 		iMat = iMat / cam.gain;               
@@ -129,7 +152,7 @@ for i in range(0,k):
 		# print iMat
 
 		# convert to grayscale
-		bMeasurements[dIndex,i] = (iMat[:,:,0] * 0.3) + (iMat[:,:,1] * 0.59) + (iMat[:,:,2] * 0.11)
+		bMeasurements[dIndex,i] = (iMat[:,:,0] / 3.) + (iMat[:,:,1] / 3.) + (iMat[:,:,2] / 3.)
 		# print (iMat[:,:,0] * 0.3) + (iMat[:,:,1] * 0.59) + (iMat[:,:,2] * 0.11)
 		# grayIMat[:,:,i] = (iMat[:,:,0] * 0.3) + (iMat[:,:,1] * 0.59) + (iMat[:,:,2] * 0.11)
 
@@ -144,7 +167,45 @@ output = np.concatenate((trueDists,bMeasurements),axis=1)
 print output 
 print output.shape 
 
-np.savetxt("../Datasets/EasyDepthData_Test.csv",output,delimiter=",")
+
+################ Save dataset #########################
+datasetJSON = {
+	'codingFunction': codingFunction,
+	'k': k,
+	'aveSrcEnergyExponent': aveSrcEnergyExponent,
+	'aveAmbientEnergyExponent': "aveAmbientEnergyExponent",
+	'readNoiseVariance': "readNoiseVariance",
+	'fullWellCap': cam.fullWellCap,
+	'numBits': cam.numBits,
+	'cameraGain': cam.gain,
+	'maxDepth': dMax,
+	'nDataPoints': nDataPoints
+}
+
+datasetDirName = codingFunction + str(k)
+datasetReposPath = '../Datasets/'
+datasetSavePath = datasetReposPath + datasetDirName + '/'
+
+# datasetFilename = (datasetDirName + '_' + 
+# 				str(int(aveAmbientEnergyExponent)) + '_' +
+# 				str(int(readNoiseVariance)))
+
+
+datasetFilename = (datasetDirName + '_' + 
+				'rand' + '_' + 'rand')
+
+# See if dataset directory exists, if not create it
+try: 
+	os.makedirs(datasetSavePath)
+except OSError:
+	if not os.path.isdir(datasetSavePath):
+		raise
+
+# Save dataset information into JSON file
+with open(datasetSavePath + datasetFilename + ".json", "w") as outfile:
+	json.dump(datasetJSON, outfile, indent=4)
+# Save dataset CSV file
+np.savetxt(datasetSavePath + datasetFilename + ".csv",output,delimiter=",")
 
 # a = np.array([trueDists,])
 
