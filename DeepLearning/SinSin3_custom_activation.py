@@ -37,12 +37,20 @@ def read_data(file):
             label.append([float(line_split[0])])
     return np.array(data), np.array(label)
 
+def custom_activation(x):
+    # return K.sigmoid(x + K.random_normal_variable((K.ndim(x), 1), 0, x))
+    # noise = K.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32) 
+    noise = K.random_normal(shape=K.shape(x), mean=0.0, stddev=10, dtype=K.dtype(x)) 
+    return K.relu(x + noise)
+    # return K.sigmoid(x)
+
 
 model = Sequential()
 
-model.add(Dense(units=12, input_dim=3, activation=layers.advanced_activations.LeakyReLU(alpha=0.3)))
-# model.add(Dense(units=12, activation=layers.advanced_activations.LeakyReLU(alpha=0.3)))
-model.add(Dense(units=1, activation=layers.advanced_activations.LeakyReLU(alpha=0.3)))
+model.add(Dense(units=12, input_dim=3, activation='sigmoid'))
+model.add(Dense(units=12, activation='relu'))
+# model.add(Dense(units=12, activation='relu'))
+model.add(Dense(units=1, activation='relu'))
 
 model.compile(optimizer='sgd', loss='mean_absolute_error')
 
