@@ -42,7 +42,7 @@ We will use anaconda to create a virtual environment that uses python 2.7. Why 2
 2. Create an conda environment with the dependencies:
 
 ```
-    conda create --name mlenv python=2.7 numpy scipy pandas matplotlib scikit-learn h5py
+    conda create --name mlenv python=2.7 numpy scipy pandas matplotlib scikit-learn h5py 
 ```
 
 3. Activate environment
@@ -68,6 +68,13 @@ We will use anaconda to create a virtual environment that uses python 2.7. Why 2
 
 ```
     conda install -c conda-forge keras=2.0.2
+```
+
+7. (Optional) Install pydot and graphviz to visualize neural networks
+
+```
+    conda install pydot
+    conda install graphviz
 ```
 
 **NOTE 1:** Make sure that the previous command will install tensorflow for python 2.7!
