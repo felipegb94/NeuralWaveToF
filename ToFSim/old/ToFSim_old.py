@@ -3,10 +3,10 @@ import sys
 import math
 # Library imports
 import numpy as np
-import pandas as pd
-from scipy import signal
-import matplotlib.pyplot as plt
-plt.style.use('ggplot')
+# import pandas as pd
+# from scipy import signal
+# import matplotlib.pyplot as plt
+# plt.style.use('ggplot')
 
 
 # Parameters
@@ -18,42 +18,46 @@ pi = np.pi
 shift = 0.
 f = 10000000. # 10Mhz
 T = 1/f # period
-n_periods = 10
+n_periods = 1000 # number of integration periods
 integration_time = n_periods*T # n periods
 omega = 2*pi * f # angular frequency
 max_depth = c * T / 2
 x = np.linspace(0, integration_time, N)
 
-# Scene parameters
+# Scene parameters (for now this is for a single pixel so only one depth)
 depth = max_depth/5 # 5 meters
-beta = 0.5 # reflectance ()
-L_a = 1 # Ambient illumination
-shift = 2*depth/c
+beta = 1. # reflectance of pixel
+L_a = 1. # Ambient illumination 
+shift = 2*depth/c # phase shift
 
 print "For frequency: {} hz, Max depth: {} meters".format(f,max_depth)
 
 # Create modulation and demodulation functions
-I = (np.cos(omega*x) + 1)*0.5
-R1 = (np.cos(omega*x + 0) + 1)*0.5 # Demodulation function 1  
-R2 = (np.cos(omega*x + (2*pi/3)) + 1)*0.5  # Demodulation function 2
-R3 = (np.cos(omega*x + (4*pi/3)) + 1)*0.5  # Demodulation function 3
+M = (np.cos(omega*x) + 1)*0.5
+D1 = (np.cos(omega*x + 0) + 1)*0.5 # Demodulation function 1  
+D2 = (np.cos(omega*x + (2*pi/3)) + 1)*0.5  # Demodulation function 2
+D3 = (np.cos(omega*x + (4*pi/3)) + 1)*0.5  # Demodulation function 3
 
 
 # Shifted function
-I_shifted = (np.cos(omega*(x - shift)) + 1)*0.5
-L = (beta * I_shifted) + L_a 
-
-B1 = L.dot(R1)  
-B2 = L.dot(R2)
-B3 = L.dot(R3)
+M_shifted = (np.cos(omega*(x - shift)) + 1)*0.5
+# Received radiance on sensor 
+L = (beta * M_shifted) + L_a  
+# Calculate the brightness measurements
+B1 = L.dot(D1)  
+B2 = L.dot(D2)
+B3 = L.dot(D3)
 print "Brightness measurements over {} periods: ({},{},{})".format(n_periods,B1,B2,B3)
 
+# Photon noise for each brightness measurement
 stddev_photon1 = np.sqrt(B1)
 stddev_photon2 = np.sqrt(B2)
 stddev_photon3 = np.sqrt(B3)
 noise_photon1 = np.random.normal(0,stddev_photon1)
 noise_photon2 = np.random.normal(0,stddev_photon2)
 noise_photon3 = np.random.normal(0,stddev_photon3)
+
+# Todo: Add Read Noise + Quantization
 
 
 B = np.array([B1+noise_photon1,B2+noise_photon2,B3+noise_photon3])
@@ -65,8 +69,11 @@ B = np.array([B1+noise_photon1,B2+noise_photon2,B3+noise_photon3])
 # noise_read2 = np.random.normal(0,stddev_photon2)
 # noise_read3 = np.random.normal(0,stddev_photon3)
 
-
-C = np.matrix([[1,np.cos(0),np.sin(0)],[1,np.cos(2*pi/3),np.sin(2*pi/3)],[1,np.cos(4*pi/3),np.sin(4*pi/3)]])
+# C Matrix of book chapter
+C = np.matrix(	[[1,np.cos(0),np.sin(0)],
+				[1,np.cos(2*pi/3),np.sin(2*pi/3)],
+				[1,np.cos(4*pi/3),np.sin(4*pi/3)]
+				])
 print B
 print C
 X = np.linalg.solve(C, B)
