@@ -76,6 +76,10 @@ We will use anaconda to create a virtual environment that uses python 2.7. Why 2
     conda install pydot
     conda install graphviz
 ```
+8. (Optional) Install plyfile from kayarre to be able to read and writ epoint cloud files. Only needed for ToFSim3D.py
+```
+    conda install --channel https://conda.anaconda.org/kayarre plyfile
+```
 
 **NOTE 1:** Make sure that the previous command will install tensorflow for python 2.7!
 
