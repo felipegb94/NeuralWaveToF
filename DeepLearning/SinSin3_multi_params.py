@@ -46,7 +46,7 @@ import numpy as np
 from keras import backend as K
 import random
 from keras import layers, optimizers
-from keras.callbacks import LearningRateScheduler
+from keras.callbacks import LearningRateScheduler, EarlyStopping
 
 data_file_name = 'SinusoidSinusoid3_rand_rand.csv';
 
@@ -79,18 +79,34 @@ for param in params:
                     kernel_initializer=param['init']))
 
     if len(param['layers']) > 1:
-        model.add(Dense(units=param['layers'][1], 
-                        activation=activation,
-                        kernel_initializer=param['init']))
+        if param['activation'][0] == 'leakyrelu':
+            model.add(Dense(units=param['layers'][1], 
+                            kernel_initializer=param['init']))
+            model.add(layers.advanced_activations.LeakyReLU(alpha=param['activation'][1]))
+        else:
+            model.add(Dense(units=param['layers'][1], 
+                            activation='linear',
+                            kernel_initializer=param['init']))
 
     if len(param['layers']) > 2:
-        model.add(Dense(units=param['layers'][2], 
-                        activation=activation,
+        if param['activation'][0] == 'leakyrelu':
+            model.add(Dense(units=param['layers'][2], 
+                            kernel_initializer=param['init']))
+            model.add(layers.advanced_activations.LeakyReLU(alpha=param['activation'][1]))
+        else:
+            model.add(Dense(units=param['layers'][2], 
+                            activation='linear',
+                            kernel_initializer=param['init']))
+
+    if param['activation'][0] == 'leakyrelu':
+        model.add(Dense(units=1, 
+                        kernel_initializer=param['init']))
+        model.add(layers.advanced_activations.LeakyReLU(alpha=param['activation'][1]))
+    else:
+        model.add(Dense(units=1, 
+                        activation='linear',
                         kernel_initializer=param['init']))
 
-    model.add(Dense(units=1, 
-                    activation=activation,
-                    kernel_initializer=param['init']))
 
     sgd = optimizers.SGD(lr=param['rate'])
     model.compile(optimizer=sgd, loss='mean_absolute_error')
@@ -103,10 +119,16 @@ for param in params:
             print("lr changed to {}".format(lr*.9))
         return K.get_value(model.optimizer.lr)
     lr_decay = LearningRateScheduler(scheduler)
-    callbacks = [lr_decay] if param['dynamic_rate'] else []
     
 
-    model.fit(train_data, train_label, epochs=1000, batch_size=param['batch'], callbacks=callbacks)
+    earlyStopping=EarlyStopping(monitor='val_loss', patience=50, verbose=0, mode='auto')
+
+    callbacks = [lr_decay, earlyStopping] if param['dynamic_rate'] else [earlyStopping]
+    history_callback = model.fit(train_data, train_label, epochs=5, batch_size=param['batch'], callbacks=callbacks, validation_split=0.0, validation_data=(tune_data, tune_label), shuffle=True)
+
+    loss_history = history_callback.history["loss"]
+    val_loss_history = history_callback.history["val_loss"]
+    history = [(loss_history[i], val_loss_history[i]) for i in range(len(loss_history))]
 
     loss_and_metrics = model.evaluate(test_data, test_label, batch_size=param['batch'])
 
@@ -118,4 +140,25 @@ for param in params:
     print 'Loss: ', loss_and_metrics
     print '====================================================================='
     print ''
+
+    # Save the results.
+    output_name = ''
+    for key, value in sorted(param.items()):
+        output_name += str(key) + '_'
+        if key in ['activation', 'layers']:
+            output_name += '_'.join(str(e) for e in value) + '_'
+        else:
+            output_name += str(value) + '_'
+
+    with open('results/' + output_name + '.txt', 'w') as f:
+        f.write('Params: ' + str(param) + '\n')
+        f.write('Loss: ' + str(loss_and_metrics) + '\n')
+        f.write('\n')
+        for (e1, e2) in history:
+            f.write(str(e1) + ',' + str(e2) + '\n')
+
+    # Save models.
+    with open('results/' + output_name + '.json', "w") as json_file:
+        json_file.write(model.to_json())
+    model.save_weights('results/' + output_name + '.h5')
 
