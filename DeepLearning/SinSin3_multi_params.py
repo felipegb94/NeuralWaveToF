@@ -124,7 +124,7 @@ for param in params:
     earlyStopping=EarlyStopping(monitor='val_loss', patience=50, verbose=0, mode='auto')
 
     callbacks = [lr_decay, earlyStopping] if param['dynamic_rate'] else [earlyStopping]
-    history_callback = model.fit(train_data, train_label, epochs=5, batch_size=param['batch'], callbacks=callbacks, validation_split=0.0, validation_data=(tune_data, tune_label), shuffle=True)
+    history_callback = model.fit(train_data, train_label, epochs=1000, batch_size=param['batch'], callbacks=callbacks, validation_split=0.0, validation_data=(tune_data, tune_label), shuffle=True)
 
     loss_history = history_callback.history["loss"]
     val_loss_history = history_callback.history["val_loss"]
