@@ -228,4 +228,3 @@ np.savetxt(datasetSavePath + datasetFilename + ".csv",output,delimiter=",")
 # output = np.array([np.reshape(trueDists),bMeasurements])
 # print output
 ### end modulation for loop
-

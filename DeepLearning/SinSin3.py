@@ -8,8 +8,9 @@ import numpy as np
 from keras import backend as K
 import random
 from keras import layers
+import keras
 
-data_folder = '/Users/zhicheng/Desktop/SinusoidSinusoid3/'
+data_folder = '../Datasets/SinusoidSinusoid3/'
 # 1.
 data_file_names = ['SinusoidSinusoid3_18_1.csv',
                     # 2.
@@ -40,17 +41,21 @@ def read_data(file):
 
 model = Sequential()
 
-model.add(Dense(units=12, input_dim=3, activation=layers.advanced_activations.LeakyReLU(alpha=0.3)))
+model.add(Dense(units=12, input_dim=3, activation='sigmoid'))
 # model.add(Dense(units=12, activation=layers.advanced_activations.LeakyReLU(alpha=0.3)))
-model.add(Dense(units=1, activation=layers.advanced_activations.LeakyReLU(alpha=0.3)))
+# model.add(Dense(units=1, activation=layers.advanced_activations.LeakyReLU(alpha=0.3)))
+model.add(Dense(units=1, activation='sigmoid'))
 
-model.compile(optimizer='sgd', loss='mean_absolute_error')
+sgd = keras.optimizers.SGD(lr=0.1)
+
+model.compile(optimizer=sgd, loss='mean_absolute_error')
 
 
 data, label = read_data(data_file_name)
-test_data, test_label = data[:10000], label[:10000]
-tune_data, tune_label = data[10000:20000], label[10000:20000]
-train_data, train_label = data[20000:], label[20000:]
+test_data, test_label = data[:10000], (label[:10000]/10000)
+tune_data, tune_label = data[10000:20000], (label[10000:20000]/10000)
+train_data, train_label = data[20000:], (label[20000:]/10000)
+
 
 model.fit(train_data, train_label, epochs=500, batch_size=128)
 

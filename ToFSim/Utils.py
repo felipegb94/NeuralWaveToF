@@ -14,4 +14,6 @@ def Hamiltonian_f(x,shift):
 	funcs = [lambda x: 0, lambda x: slope*(x-shift), lambda x: 1,
              lambda x: -slope*(x) + (4+slope*shift), lambda x: 0]
 	return np.piecewise(x, conds, funcs)
+
+
 	

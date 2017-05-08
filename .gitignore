@@ -4,7 +4,8 @@
 Datasets/Sinusoid3
 Datasets/Delta3
 Datasets/SinusoidSinusoid3
-
+Datasets/
+sftp-config.json
 ############## Latex Gitignore ############################
 ## Core latex/pdflatex auxiliary files:
 *.aux
