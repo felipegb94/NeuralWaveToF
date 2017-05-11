@@ -52,7 +52,7 @@ data, label = read_data(data_file_name)
 test_data, test_label = data[:10000], label[:10000]
 tune_data, tune_label = data[10000:20000], label[10000:20000]
 train_data, train_label = data[20000:], label[20000:]
-
+print train_data.shape
 earlyStopping=EarlyStopping(monitor='val_loss', patience=10, verbose=0, mode='auto')
 history_callback = model.fit(train_data, train_label, batch_size=64, epochs=10000, verbose=1, callbacks=[earlyStopping], validation_split=0.0, validation_data=(tune_data, tune_label), shuffle=True, class_weight=None, sample_weight=None)
 loss_history = history_callback.history["val_loss"]
