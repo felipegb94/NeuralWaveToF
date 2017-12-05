@@ -1,0 +1,12 @@
+{
+    "aveSrcEnergyExponent": 19, 
+    "cameraGain": 6.103515625, 
+    "nDataPoints": 100000, 
+    "maxDepth": 10000, 
+    "fullWellCap": 100000, 
+    "aveAmbientEnergyExponent": "aveAmbientEnergyExponent", 
+    "codingFunction": "SinusoidSinusoid", 
+    "k": 3, 
+    "readNoiseVariance": "readNoiseVariance", 
+    "numBits": 14
+}
